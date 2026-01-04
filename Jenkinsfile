@@ -2,16 +2,17 @@ pipeline {
     agent any
 
     tools {
-        maven "maven3.9.11" // Make sure this is configured in Jenkins
-        jdk "jdk17"          // Make sure JDK17 is installed in Jenkins tools
+        maven "maven3.9.11"  // Make sure this matches your Jenkins Maven installation
+        // Optionally add JDK if needed
+        // jdk "jdk17"
     }
 
     environment {
-        SONAR_HOST_URL = "http://localhost:9000"           // Change to your SonarQube URL
-        SONAR_TOKEN = credentials('sonar-token-id')       // Jenkins credential ID for Sonar token
+        SONAR_HOST_URL = 'http://localhost:9000' // Your SonarQube server
     }
 
     stages {
+
         stage("1. Git clone from repo") {
             steps {
                 echo "Start Git clone"
@@ -20,49 +21,46 @@ pipeline {
             }
         }
 
-        stage("2. Build with Maven") {
+        stage("2. Build from Maven") {
             steps {
-                echo "Start Maven build"
+                echo "Start building from Maven"
                 sh "mvn clean package"
-                echo "End Maven build"
+                echo "End build"
             }
         }
 
         stage("3. SonarQube Code Scan") {
             steps {
                 echo "Start SonarQube scan"
-                sh """
-                mvn sonar:sonar \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_TOKEN}
-                """
+                // Use Jenkins credentials securely
+                withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
+                    sh 'mvn sonar:sonar -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
+                }
                 echo "End SonarQube scan"
             }
         }
 
         stage("4. Store Artifacts") {
             steps {
-                echo "Deploy Artifact to Nexus (or other repo)"
+                echo "Deploy Artifact"
                 sh "mvn deploy"
             }
         }
 
-        stage("5. Deploy to Tomcat UAT") {
+        stage("5. Deploy to Tomcat in UAT") {
             steps {
-                echo "Deploying to Tomcat in UAT"
-                deploy adapters: [tomcat9(
-                    credentialsId: 'tomcat_cred',
-                    path: '',
-                    url: 'http://18.117.162.68:9090'
-                )], contextPath: null, war: 'target/*.war'
+                echo "Deploying to UAT server"
+                deploy adapters: [tomcat9(credentialsId: 'tomcat_cred', path: '', url: 'http://18.117.162.68:9090')],
+                       contextPath: null,
+                       war: 'target/*.war'
             }
         }
 
         stage("6. Email Notification") {
             steps {
-                echo "Sending Email Notification"
-                emailext body: 'The Deployment is Successful', 
-                         subject: 'Deployment Success', 
+                echo "Send Email Notification"
+                emailext body: 'The Deployment is Successful',
+                         subject: 'Deployment Success',
                          to: 'info@jomacsit.com'
             }
         }
