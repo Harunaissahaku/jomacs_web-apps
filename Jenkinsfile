@@ -1,68 +1,111 @@
+
 pipeline {
     agent any
 
     tools {
-        maven "maven3.9.11"  // Make sure this matches your Jenkins Maven installation
-        // Optionally add JDK if needed
-        // jdk "jdk17"
+        maven 'maven3.9.11'
+        jdk 'jdk17'   // must be configured in Jenkins → Global Tool Configuration
     }
 
     environment {
-        SONAR_HOST_URL = 'http://localhost:9000' // Your SonarQube server
+        MAVEN_OPTS = "-Dmaven.test.failure.ignore=true"
     }
 
     stages {
 
-        stage("1. Git clone from repo") {
+        stage('1. Checkout Source Code') {
             steps {
-                echo "Start Git clone"
-                git branch: 'main', url: 'https://github.com/JOMACS-IT/web-app.git'
-                echo "End Git clone"
+                echo 'Cloning source code...'
+                git branch: 'main',
+                    url: 'https://github.com/JOMACS-IT/web-app.git'
             }
         }
 
-        stage("2. Build from Maven") {
+        stage('2. Build & Unit Test') {
             steps {
-                echo "Start building from Maven"
-                sh "mvn clean package"
-                echo "End build"
+                echo 'Building application...'
+                sh 'mvn clean verify'
             }
         }
 
-        stage("3. SonarQube Code Scan") {
+        stage('3. SonarQube Code Analysis') {
             steps {
-                echo "Start SonarQube scan"
-                // Use Jenkins credentials securely
-                withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
-                    sh 'mvn sonar:sonar -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
+                echo 'Running SonarQube analysis...'
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar'
                 }
-                echo "End SonarQube scan"
             }
         }
 
-        stage("4. Store Artifacts") {
+        stage('4. Quality Gate (Optional but Recommended)') {
             steps {
-                echo "Deploy Artifact"
-                sh "mvn deploy"
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
-        stage("5. Deploy to Tomcat in UAT") {
+        stage('5. Publish Artifact to Nexus') {
             steps {
-                echo "Deploying to UAT server"
-                deploy adapters: [tomcat9(credentialsId: 'tomcat_cred', path: '', url: 'http://18.117.162.68:9090')],
-                       contextPath: null,
-                       war: 'target/*.war'
+                echo 'Publishing artifact to Nexus...'
+                sh 'mvn deploy -DskipTests'
             }
         }
 
-        stage("6. Email Notification") {
+        stage('6. Deploy to Tomcat (UAT)') {
             steps {
-                echo "Send Email Notification"
-                emailext body: 'The Deployment is Successful',
-                         subject: 'Deployment Success',
-                         to: 'info@jomacsit.com'
+                echo 'Deploying WAR to Tomcat...'
+                deploy adapters: [
+                    tomcat9(
+                        credentialsId: 'tomcat_cred',
+                        path: '',
+                        url: 'http://18.117.162.68:9090'
+                    )
+                ],
+                contextPath: null,
+                war: 'target/*.war'
             }
+        }
+
+    }
+
+    post {
+        success {
+            emailext(
+                subject: '✅ Deployment Successful',
+                body: '''
+Hello Team,
+
+The Jenkins pipeline completed successfully.
+
+✔ Build
+✔ SonarQube Scan
+✔ Quality Gate Passed
+✔ Nexus Publish
+✔ Tomcat Deployment
+
+Regards,
+Jenkins CI
+''',
+                to: 'info@jomacsit.com'
+            )
+        }
+
+        failure {
+            emailext(
+                subject: '❌ Deployment Failed',
+                body: '''
+Hello Team,
+
+The Jenkins pipeline FAILED.
+
+Please check Jenkins console logs for details.
+
+Regards,
+Jenkins CI
+''',
+                to: 'info@jomacsit.com'
+            )
         }
     }
 }
