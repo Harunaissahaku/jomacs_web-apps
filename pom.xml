@@ -148,6 +148,15 @@
 			
 </plugins>
 	</build>
-	
+	<build>
+    <plugins>
+        <plugin>
+            <groupId>org.sonarsource.scanner.maven</groupId>
+            <artifactId>sonar-maven-plugin</artifactId>
+            <version>4.4.2.2413</version> <!-- use latest -->
+        </plugin>
+    </plugins>
+</build>
 	
 </project>
+
