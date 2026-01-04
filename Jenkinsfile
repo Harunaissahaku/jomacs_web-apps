@@ -1,7 +1,7 @@
 pipeline{
   agent any
   tools{
-    maven "maven3.8.8"
+    maven "maven3.9.11"
   }
 
     stages{
@@ -79,3 +79,4 @@ JOMACS
 }
 }
  */
+
