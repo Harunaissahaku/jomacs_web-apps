@@ -5,6 +5,36 @@
            http://maven.apache.org/POM/4.0.0
            http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+    <!-- Required -->
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>my-web-app</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>war</packaging> <!-- for web applications -->
+
+    <!-- Optional: define properties -->
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+    </properties>
+
+    <!-- Build plugins -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- SonarQube Maven Plugin -->
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>3.9.1.2184</version> <!-- stable version -->
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.mt</groupId>
@@ -148,3 +178,4 @@
     </distributionManagement>
 
 </project>
+
