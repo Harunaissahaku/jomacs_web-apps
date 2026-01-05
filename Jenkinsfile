@@ -31,7 +31,7 @@ pipeline {
         stage('3. SonarQube Code Analysis') {
             steps {
                 echo 'Running SonarQube analysis...'
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('SonarScanner') {
                     sh 'mvn sonar:sonar'
                 }
             }
@@ -109,3 +109,4 @@ Jenkins CI
         }
     }
 }
+
